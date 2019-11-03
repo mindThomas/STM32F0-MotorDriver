@@ -61,7 +61,9 @@ uint32_t vref_uint = 0;
 const uint32_t VREF_SAMPLE_COUNT_FINISHED = 1000;
 uint32_t vrefSampleCount = 10000;
 uint16_t VrefVoltage = 0;
-int32_t ADC_offset = 0;
+
+int32_t ADC_offset0 = 0;
+int32_t ADC_offset1 = 0;
 
 _Bool ChannelAlternation = 0;
 _Bool FirstTime = 1;
@@ -160,7 +162,8 @@ int main(void)
 
 	HAL_Delay(2000); // wait for stabilization
 
-	// Vref calibration: Take 1000 samples of Vref sampled at 1000 Hz
+	// Vref calibration disabled
+	/*// Vref calibration: Take 1000 samples of Vref sampled at 1000 Hz
 	vref_uint = 0;
 	vrefSampleCount = 0; // sample offset
 	while (vrefSampleCount < VREF_SAMPLE_COUNT_FINISHED)
@@ -168,10 +171,23 @@ int main(void)
 
 	vref_uint = vref_uint / vrefSampleCount;
 	vrefSampleCount = VREF_SAMPLE_COUNT_FINISHED + 1; // marks that offset computation has finished
-	VrefVoltage = __LL_ADC_CALC_VREFANALOG_VOLTAGE(vref_uint, LL_ADC_RESOLUTION_12B);
+	VrefVoltage = __LL_ADC_CALC_VREFANALOG_VOLTAGE(vref_uint, LL_ADC_RESOLUTION_12B);*/
+
+	// Offset calibration: Take 1000 samples of VNH_CS sampled at 1000 Hz
+	LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_0); // change to sample from channel 0 (INA180_CS)
+	HAL_Delay(10);
+	vref_uint = 0;
+	vrefSampleCount = 0; // sample offset
+	while (vrefSampleCount < VREF_SAMPLE_COUNT_FINISHED)
+		HAL_Delay(1);
+
+	vref_uint = vref_uint / vrefSampleCount;
+	vrefSampleCount = VREF_SAMPLE_COUNT_FINISHED + 1; // marks that offset computation has finished
+	ADC_offset0 = vref_uint;
 
 	// Offset calibration: Take 1000 samples of VNH_CS sampled at 1000 Hz
 	LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_1); // change to sample from channel 1 (VNH_CS)
+	HAL_Delay(10);
 	vref_uint = 0;
 	vrefSampleCount = 0; // sample offset
 	while (vrefSampleCount < VREF_SAMPLE_COUNT_FINISHED)
@@ -179,13 +195,13 @@ int main(void)
 
 	vref_uint = vref_uint / vrefSampleCount;
 	vrefSampleCount = VREF_SAMPLE_COUNT_FINISHED + 1; // marks that offset computation has finished
-	ADC_offset = vref_uint;
+	ADC_offset1 = vref_uint;
 
-	//LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_0); // change to sample from channel 0 (INA180_CS)
-	LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_1); // change to sample from channel 1 (VNH_CS)
+	LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_0); // change to sample from channel 0 (INA180_CS)
+	//LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_1); // change to sample from channel 1 (VNH_CS)
 	HAL_Delay(1000); // wait for stabilization
 
-	SetTimerFrequencyAndDutyCycle(100, 0.5);
+	SetTimerFrequencyAndDutyCycle(80, 0.5);
 
 	recordSamples = 1;
 
@@ -615,7 +631,7 @@ static void MX_TIM1_Init(void)
   LL_TIM_Init(TIM1, &TIM_InitStruct);
   LL_TIM_DisableARRPreload(TIM1);
   LL_TIM_SetClockSource(TIM1, LL_TIM_CLOCKSOURCE_INTERNAL);
-  LL_TIM_OC_EnablePreload(TIM1, LL_TIM_CHANNEL_CH1);
+  LL_TIM_OC_DisablePreload(TIM1, LL_TIM_CHANNEL_CH1);
   TIM_OC_InitStruct.OCMode = LL_TIM_OCMODE_PWM1;
   TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_DISABLE;
   TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_DISABLE;
@@ -626,12 +642,12 @@ static void MX_TIM1_Init(void)
   TIM_OC_InitStruct.OCNIdleState = LL_TIM_OCIDLESTATE_LOW;
   LL_TIM_OC_Init(TIM1, LL_TIM_CHANNEL_CH1, &TIM_OC_InitStruct);
   LL_TIM_OC_DisableFast(TIM1, LL_TIM_CHANNEL_CH1);
-  LL_TIM_OC_EnablePreload(TIM1, LL_TIM_CHANNEL_CH2);
+  LL_TIM_OC_DisablePreload(TIM1, LL_TIM_CHANNEL_CH2);
   TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_DISABLE;
   TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_DISABLE;
   LL_TIM_OC_Init(TIM1, LL_TIM_CHANNEL_CH2, &TIM_OC_InitStruct);
   LL_TIM_OC_DisableFast(TIM1, LL_TIM_CHANNEL_CH2);
-  LL_TIM_OC_EnablePreload(TIM1, LL_TIM_CHANNEL_CH3);
+  LL_TIM_OC_DisablePreload(TIM1, LL_TIM_CHANNEL_CH3);
   TIM_OC_InitStruct.OCState = LL_TIM_OCSTATE_DISABLE;
   TIM_OC_InitStruct.OCNState = LL_TIM_OCSTATE_DISABLE;
   LL_TIM_OC_Init(TIM1, LL_TIM_CHANNEL_CH3, &TIM_OC_InitStruct);
@@ -969,8 +985,8 @@ void SetTimerFrequencyAndDutyCycle(uint32_t freq, float dutyPct)
 	const uint32_t PCLK = 48000000;
 	const uint16_t PRESCALER = 23;
 	const float ADC_SAMPLE_TIME_US = 4.5; // See MATLAB script: 'ADC_Configuration.m'
-	const float HIGH_SAMPLE_OFFSET_US = 20;
-	const float LOW_SAMPLE_OFFSET_US = 10;
+	const float HIGH_SAMPLE_OFFSET_US = 40;
+	const float LOW_SAMPLE_OFFSET_US = 40;
 
 	LL_TIM_SetPrescaler(TIM1, PRESCALER);
 
@@ -990,7 +1006,7 @@ void SetTimerFrequencyAndDutyCycle(uint32_t freq, float dutyPct)
 	//Duty1preload = CENTER - SampleDuty;
 	//Duty2preload = END - SampleDuty;
 	Duty1preload = LowOffsetDuty;
-	Duty2preload = CENTER + HighOffsetDuty;
+	Duty2preload = CENTER - HighOffsetDuty;
 
 	LL_TIM_OC_SetCompareCH1(TIM1, CENTER); // PWM
 	LL_TIM_OC_SetCompareCH2(TIM1, END); // INA = High
@@ -1084,7 +1100,7 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
   }
 }
 
-uint16_t _frequency = 100;
+uint16_t _frequency = 80;
 void ADC1_IRQHandler(void)
 {
   /* Check whether ADC group regular end of unitary conversion caused         */
@@ -1094,15 +1110,20 @@ void ADC1_IRQHandler(void)
     /* Clear flag ADC group regular end of unitary conversion */
     LL_ADC_ClearFlag_EOC(ADC1);
 
-    // Toggle debug pin
-    GPIOB->ODR ^= GPIO_PIN_10;
-
     if (vrefSampleCount < VREF_SAMPLE_COUNT_FINISHED) {
 		vref_uint += LL_ADC_REG_ReadConversionData12(ADC1);
 		vrefSampleCount++;
 	}
 	if (recordSamples) {
-		int32_t sample = (int32_t)LL_ADC_REG_ReadConversionData12(ADC1) - ADC_offset;
+		// Toggle debug pin
+		GPIOB->ODR ^= GPIO_PIN_10;
+
+		int32_t sample;
+		if (ChannelAlternation)
+			sample = (int32_t)LL_ADC_REG_ReadConversionData12(ADC1) - ADC_offset0;
+		else
+			sample = (int32_t)LL_ADC_REG_ReadConversionData12(ADC1) - ADC_offset1;
+
 		if (PWM_Level == 1) { // sampling at the transition from Low to High == Low value sampling
 			if (sampleIndex_low < SAMPLE_COUNT) {
 				time_low[sampleIndex_low] = HAL_GetHighResTick();
@@ -1118,31 +1139,37 @@ void ADC1_IRQHandler(void)
 		}
 	}
 
+	if (recordSamples) {
+		// Only increase frequency every time we have sampled both low-to-high (PWM_Level == 1) and high-to-low (PWM_Level == 0) transitions
+		if (PWM_Level == 0) {
+			// Alternate channel to get one complete PWM pulse with both CH0 and CH1 before changing the frequency
+			if (ChannelAlternation == 0)
+				LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_1);
+			else
+				LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_0);
+			ChannelAlternation = !ChannelAlternation;
+		}
+  	}
+
+    if (recordSamples) {
+		if (PWM_Level == 1) {
+			// First increase/change frequency when both channels have been sampled, thus when CH1 has just been sampled
+			if (ChannelAlternation == 0) {
+				SetTimerFrequencyAndDutyCycle(_frequency, 0.5);
+				_frequency += 1;
+			}
+		}
+    }
+
     // Update Duty cycle to enable sampling on both low-to-high and high-to-low edge
     if (PWM_Level) {
-    	LL_TIM_OC_SetCompareCH4(TIM1, Duty2);
-    } else {
-    	if (recordSamples) {
-    		SetTimerFrequencyAndDutyCycle(_frequency, 0.5);
-    		//if (sampleIndex_low < 200)
-    			_frequency += 5;
-    		//else
-    		//	_frequency += 5;
-    	}
-
-    	/*
-    	if (ChannelAlternation == 0)
-    			LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_1);
-    		else
-    			LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_0);
-    		ChannelAlternation = !ChannelAlternation;
-    	}
-    	*/
-
     	Duty1 = Duty1preload;
     	Duty2 = Duty2preload;
+    	LL_TIM_OC_SetCompareCH4(TIM1, Duty2);
+    } else {
     	LL_TIM_OC_SetCompareCH4(TIM1, Duty1);
     }
+
     PWM_Level = !PWM_Level;
   }
 }
