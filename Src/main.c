@@ -61,6 +61,7 @@ uint32_t vref_uint = 0;
 const uint32_t VREF_SAMPLE_COUNT_FINISHED = 1000;
 uint32_t vrefSampleCount = 10000;
 uint16_t VrefVoltage = 0;
+int32_t ADC_offset = 0;
 
 _Bool ChannelAlternation = 0;
 _Bool FirstTime = 1;
@@ -140,7 +141,7 @@ int main(void)
   LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   GPIOA->BSRR = GPIO_PIN_3; // SEL0 = High
-  SetTimerFrequencyAndDutyCycle(500, 0.5);
+  SetTimerFrequencyAndDutyCycle(1000, 0.5);
   LL_TIM_OC_SetCompareCH1(TIM1, 0); // PWM
   LL_TIM_OC_SetCompareCH2(TIM1, 0); // INA = High
   LL_TIM_OC_SetCompareCH3(TIM1, 0); // INB = Low
@@ -159,6 +160,7 @@ int main(void)
 
 	HAL_Delay(2000); // wait for stabilization
 
+	// Vref calibration: Take 1000 samples of Vref sampled at 1000 Hz
 	vref_uint = 0;
 	vrefSampleCount = 0; // sample offset
 	while (vrefSampleCount < VREF_SAMPLE_COUNT_FINISHED)
@@ -166,8 +168,21 @@ int main(void)
 
 	vref_uint = vref_uint / vrefSampleCount;
 	vrefSampleCount = VREF_SAMPLE_COUNT_FINISHED + 1; // marks that offset computation has finished
-
 	VrefVoltage = __LL_ADC_CALC_VREFANALOG_VOLTAGE(vref_uint, LL_ADC_RESOLUTION_12B);
+
+	// Offset calibration: Take 1000 samples of VNH_CS sampled at 1000 Hz
+	LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_1); // change to sample from channel 1 (VNH_CS)
+	vref_uint = 0;
+	vrefSampleCount = 0; // sample offset
+	while (vrefSampleCount < VREF_SAMPLE_COUNT_FINISHED)
+		HAL_Delay(1);
+
+	vref_uint = vref_uint / vrefSampleCount;
+	vrefSampleCount = VREF_SAMPLE_COUNT_FINISHED + 1; // marks that offset computation has finished
+	ADC_offset = vref_uint;
+
+	//LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_0); // change to sample from channel 0 (INA180_CS)
+	LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_1); // change to sample from channel 1 (VNH_CS)
 	HAL_Delay(1000); // wait for stabilization
 
 	SetTimerFrequencyAndDutyCycle(100, 0.5);
@@ -953,8 +968,9 @@ void SetTimerFrequencyAndDutyCycle(uint32_t freq, float dutyPct)
 {
 	const uint32_t PCLK = 48000000;
 	const uint16_t PRESCALER = 23;
-	const float MOSFET_RISE_TIME_US = 3;
-	const float ADC_SAMPLE_TIME_US = 8; // 21 us // See MATLAB script: 'ADC_Configuration.m'
+	const float ADC_SAMPLE_TIME_US = 4.5; // See MATLAB script: 'ADC_Configuration.m'
+	const float HIGH_SAMPLE_OFFSET_US = 20;
+	const float LOW_SAMPLE_OFFSET_US = 10;
 
 	LL_TIM_SetPrescaler(TIM1, PRESCALER);
 
@@ -965,15 +981,16 @@ void SetTimerFrequencyAndDutyCycle(uint32_t freq, float dutyPct)
 
 	uint16_t END = ARR + 1;
 	uint16_t CENTER = END * dutyPct;
-	uint16_t RiseDuty = (END*freq) / (1000000 / MOSFET_RISE_TIME_US);
-	uint16_t SampleDuty = (END*freq) / (1000000 / ADC_SAMPLE_TIME_US);
+	uint16_t HighOffsetDuty = (END*freq) / (1000000 / HIGH_SAMPLE_OFFSET_US);
+	uint16_t LowOffsetDuty = (END*freq) / (1000000 / LOW_SAMPLE_OFFSET_US);
+	uint16_t SampleTimeOffsetDuty = (END*freq) / (1000000 / ADC_SAMPLE_TIME_US);
 
 	//Duty1preload = CENTER/2 - SampleDuty;
 	//Duty2preload = (END - CENTER) / 2 + CENTER - SampleDuty;
 	//Duty1preload = CENTER - SampleDuty;
 	//Duty2preload = END - SampleDuty;
-	Duty1preload = RiseDuty;
-	Duty2preload = CENTER - SampleDuty;
+	Duty1preload = LowOffsetDuty;
+	Duty2preload = CENTER + HighOffsetDuty;
 
 	LL_TIM_OC_SetCompareCH1(TIM1, CENTER); // PWM
 	LL_TIM_OC_SetCompareCH2(TIM1, END); // INA = High
@@ -1085,16 +1102,17 @@ void ADC1_IRQHandler(void)
 		vrefSampleCount++;
 	}
 	if (recordSamples) {
-		if (PWM_Level == 0) {
+		int32_t sample = (int32_t)LL_ADC_REG_ReadConversionData12(ADC1) - ADC_offset;
+		if (PWM_Level == 1) { // sampling at the transition from Low to High == Low value sampling
 			if (sampleIndex_low < SAMPLE_COUNT) {
 				time_low[sampleIndex_low] = HAL_GetHighResTick();
-				sample_low[sampleIndex_low] = LL_ADC_REG_ReadConversionData12(ADC1);
+				sample_low[sampleIndex_low] = sample;
 				sampleIndex_low++;
 			}
 		} else {
 			if (sampleIndex_high < SAMPLE_COUNT) {
 				time_high[sampleIndex_high] = HAL_GetHighResTick();
-				sample_high[sampleIndex_high] = LL_ADC_REG_ReadConversionData12(ADC1);
+				sample_high[sampleIndex_high] = sample;
 				sampleIndex_high++;
 			}
 		}
@@ -1106,15 +1124,20 @@ void ADC1_IRQHandler(void)
     } else {
     	if (recordSamples) {
     		SetTimerFrequencyAndDutyCycle(_frequency, 0.5);
-    		_frequency += 5;
+    		//if (sampleIndex_low < 200)
+    			_frequency += 5;
+    		//else
+    		//	_frequency += 5;
     	}
 
+    	/*
     	if (ChannelAlternation == 0)
-    	  //LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_1);
-    	  LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_VREFINT);
-    	else
-    	  LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_0);
-    	ChannelAlternation = !ChannelAlternation;
+    			LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_1);
+    		else
+    			LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_0);
+    		ChannelAlternation = !ChannelAlternation;
+    	}
+    	*/
 
     	Duty1 = Duty1preload;
     	Duty2 = Duty2preload;
