@@ -160,7 +160,7 @@ int main(void)
 
 	HAL_Delay(2000); // wait for stabilization
 
-	// Vref calibration: Take 1000 samples of Vref sampled at 1000 Hz
+	/*// Vref calibration: Take 1000 samples of Vref sampled at 1000 Hz
 	vref_uint = 0;
 	vrefSampleCount = 0; // sample offset
 	while (vrefSampleCount < VREF_SAMPLE_COUNT_FINISHED)
@@ -179,44 +179,41 @@ int main(void)
 
 	vref_uint = vref_uint / vrefSampleCount;
 	vrefSampleCount = VREF_SAMPLE_COUNT_FINISHED + 1; // marks that offset computation has finished
-	ADC_offset = vref_uint;
+	ADC_offset = vref_uint;*/
 
 	//LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_0); // change to sample from channel 0 (INA180_CS)
 	LL_ADC_REG_SetSequencerChannels(ADC1, LL_ADC_CHANNEL_1); // change to sample from channel 1 (VNH_CS)
 	HAL_Delay(1000); // wait for stabilization
 
-	SetTimerFrequencyAndDutyCycle(100, 0.5);
+	SetTimerFrequencyAndDutyCycle(20000, 0.5);
 
-	recordSamples = 1;
+	/*recordSamples = 1;
 
 	while (sampleIndex_low < SAMPLE_COUNT && sampleIndex_high < SAMPLE_COUNT)
 		HAL_Delay(1);
 
-	recordSamples = 0;
+	recordSamples = 0;*/
 
-	// Turn off motor
-	LL_TIM_OC_SetCompareCH1(TIM1, 0); // PWM
-	LL_TIM_OC_SetCompareCH2(TIM1, 0); // INA = High
-	LL_TIM_OC_SetCompareCH3(TIM1, 0); // INB = Low
-
-	BufferTransfer(time_low, sizeof(time_low));
-	BufferTransfer(sample_low, sizeof(sample_low));
-	BufferTransfer(time_high, sizeof(time_high));
-	BufferTransfer(sample_high, sizeof(sample_high));
-	//BufferTransfer(time_vin, sizeof(time_vin));
-	//BufferTransfer(sample_vin, sizeof(sample_vin));
+	recordSamples = 1;
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint16_t frequency = 100;
+  int8_t duty = 50;
+  _Bool up = 1;
   while (1)
   {
     /* USER CODE END WHILE */
-	  //SetTimerFrequencyAndDutyCycle(frequency, 0.5);
-	  //frequency += 10;
-	  HAL_Delay(1);
+	  SetTimerFrequencyAndDutyCycle(20000, (float)duty / 100.0f);
+	  HAL_Delay(30);
+	  if (up)
+		  duty += 1;
+	  else
+		  duty -= 1;
+
+	  if (duty >= 100 || duty <= 0)
+		  up = !up;
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -969,7 +966,7 @@ void SetTimerFrequencyAndDutyCycle(uint32_t freq, float dutyPct)
 	const uint32_t PCLK = 48000000;
 	const uint16_t PRESCALER = 23;
 	const float ADC_SAMPLE_TIME_US = 4.5; // See MATLAB script: 'ADC_Configuration.m'
-	const float HIGH_SAMPLE_OFFSET_US = 20;
+	const float HIGH_SAMPLE_OFFSET_US = 10;
 	const float LOW_SAMPLE_OFFSET_US = 10;
 
 	LL_TIM_SetPrescaler(TIM1, PRESCALER);
@@ -977,6 +974,7 @@ void SetTimerFrequencyAndDutyCycle(uint32_t freq, float dutyPct)
 	uint32_t ARR = (PCLK / (uint32_t)(freq*(PRESCALER+1))) - 1;
 	LL_TIM_SetAutoReload(TIM1, ARR);
 
+	if (dutyPct < 0) dutyPct = 0.0;
 	if (dutyPct > 1) dutyPct = 1.0;
 
 	uint16_t END = ARR + 1;
@@ -985,12 +983,15 @@ void SetTimerFrequencyAndDutyCycle(uint32_t freq, float dutyPct)
 	uint16_t LowOffsetDuty = (END*freq) / (1000000 / LOW_SAMPLE_OFFSET_US);
 	uint16_t SampleTimeOffsetDuty = (END*freq) / (1000000 / ADC_SAMPLE_TIME_US);
 
-	//Duty1preload = CENTER/2 - SampleDuty;
+	if (CENTER > (LOW_SAMPLE_OFFSET_US+SampleTimeOffsetDuty))
+		Duty1preload = CENTER/2 - SampleTimeOffsetDuty;
+	else
+		Duty1preload = CENTER/2 + HIGH_SAMPLE_OFFSET_US;
 	//Duty2preload = (END - CENTER) / 2 + CENTER - SampleDuty;
 	//Duty1preload = CENTER - SampleDuty;
 	//Duty2preload = END - SampleDuty;
-	Duty1preload = LowOffsetDuty;
-	Duty2preload = CENTER + HighOffsetDuty;
+	//Duty1preload = LowOffsetDuty;
+	//Duty2preload = CENTER + HighOffsetDuty;
 
 	LL_TIM_OC_SetCompareCH1(TIM1, CENTER); // PWM
 	LL_TIM_OC_SetCompareCH2(TIM1, END); // INA = High
@@ -1084,7 +1085,7 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
   }
 }
 
-uint16_t _frequency = 100;
+uint32_t _frequency = 100;
 void ADC1_IRQHandler(void)
 {
   /* Check whether ADC group regular end of unitary conversion caused         */
@@ -1118,17 +1119,15 @@ void ADC1_IRQHandler(void)
 		}
 	}
 
+#if 0
     // Update Duty cycle to enable sampling on both low-to-high and high-to-low edge
     if (PWM_Level) {
     	LL_TIM_OC_SetCompareCH4(TIM1, Duty2);
     } else {
-    	if (recordSamples) {
+    	/*if (recordSamples) {
     		SetTimerFrequencyAndDutyCycle(_frequency, 0.5);
-    		//if (sampleIndex_low < 200)
-    			_frequency += 5;
-    		//else
-    		//	_frequency += 5;
-    	}
+			_frequency += 5;
+    	}*/
 
     	/*
     	if (ChannelAlternation == 0)
@@ -1144,6 +1143,7 @@ void ADC1_IRQHandler(void)
     	LL_TIM_OC_SetCompareCH4(TIM1, Duty1);
     }
     PWM_Level = !PWM_Level;
+#endif
   }
 }
 /* USER CODE END 4 */
