@@ -1,8 +1,7 @@
-/Debug/
-/.settings/
-
-MotorDriver-Firmware.elf.launch
-MotorDriver-Firmware_converter.log
+Debug/
+.settings/
+*.log
+*.launch
 
 # Prerequisites
 *.d
