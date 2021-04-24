@@ -1,0 +1,3 @@
+[submodule "Firmware-Bringup/STM32-libraries"]
+	path = Firmware-Bringup/STM32-libraries
+	url = https://github.com/mindThomas/STM32-libraries.git

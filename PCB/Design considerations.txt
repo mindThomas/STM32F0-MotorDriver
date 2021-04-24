@@ -1,0 +1,60 @@
+Motor supply up to
+28V
+8A continuous
+15A peak
+
+2x 470 uF capacitors (polarized) on motor supply
+
+LDO power supply
+ - Processor current consumption: max 120 mA   (drawn from 3.3V)
+ - CAN current consumption: max 70 mA   (drawn from 5V)
+ - Current sense consumption: less than 1 mA   (drawn from 3.3V)
+ - Motor driver consumption: max 6 mA   (OBS. drawn from battery voltage)
+ - Consider 22 uF or equivalent on 5V output
+ - Consider 10 uF or equivalent on 3.3V output
+
+Low-side Current sense 
+ - INA180
+ - Analog filter on current sense output (charge bucket filter) (s. 22 i INA 180 datasheet)
+   - https://e2e.ti.com/support/amplifiers/f/14/p/690982/2547350?tisearch=e2e-sitesearch&keymatch=ina180#2547350
+   - https://training.ti.com/ti-precision-labs-adcs-introduction-sar-adc-front-end-component-selection?cu=1128375
+ - 15mOhm or 10mOhm 1% current sense resistor (requires gain 20)
+ - 8 mOhm 1% current sense resistor (requires gain 50)
+ - Sample and controller rate: 1 KHz
+ - Info on how to aquire current: http://www.kappaiq.com/download/presentation-material/PDF/04%20Current%20Sensing.pdf
+
+VBAT voltage measurement
+ - Voltage divider
+ - Low-pass filter
+
+Remember to put bead in series with AVDD supply
+
+Inrush limit:
+Putting an RC filter on the gate of the reverse polarity fet may be a bad idea. The gate source voltage is max 20 V of most fets. We have to ensure that the gate source voltage always stays below 20 V, and that is hard if we make a slope on the gate voltage... Both when turning it on and off.
+Method for doing it can be seen here:
+https://www.onsemi.com/pub/Collateral/AND9093-D.PDF
+
+STM32
+ - No crystal/oscillator needed
+ - JTAG port
+ - Boot jumper
+
+CAN connector
+
+USB connector
+ - Requires VBUS sensing with voltage divider into VBUS pin (see USB design document)
+ - ESD protection (TVS diode): USBLC6    (alternative: DM1231)
+
+SPI connector
+
+UART connector
+
+I2C connector
+
+Voltage divider for VBAT
+ - 30V to 3.3V range
+ - 1% resistors
+ - RC LPF filter
+
+Missing components/footprints:
+ - PowerPAK-1212-8 for SiS MOSFET (if needed)

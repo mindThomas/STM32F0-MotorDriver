@@ -1,0 +1,102 @@
+﻿MCU:
+ - STM32F042F6P6   (https://www.digikey.com/product-detail/en/stmicroelectronics/STM32F042F6P6/497-17344-ND/5268189)
+ - STM32F042C6T6   (https://www.digikey.com/product-detail/en/stmicroelectronics/STM32F042C6T6TR/497-19319-1-ND/10063344)
+CAN: 
+ - ATA6561 (https://www.digikey.com/product-detail/en/microchip-technology/ATA6561-GBQW-N/ATA6561-GBQW-NCT-ND/9453176)
+ - NCV7342MW3R2G (https://www.digikey.com/products/en?keywords=NCV7342MW3R2GOSCT)
+ - ESD beskyttelse: https://www.digikey.com/product-detail/en/nexperia-usa-inc/PESD1CAN215/1727-3817-1-ND/1530822
+ 
+Driver: VNH7070AS
+
+LDO til 3v3 og 5v: UA78M05 og UA78M33 (SOT-223) - 0.27$ og 0.26$
+LDO (150mA): 3v3: AP7383-33Y-13	og 5v: AP7383-50Y-13 - 0.14$ og 0.14$
+LDO (billig DPAK): 5V: MC78M05CDTRKG - 0.18$
+
+Encoder: TLV493DA1B6HTSA2
+Strøm: INA180 - buy both 50 V/V and 20 V/V versions for test/comparison
+TVS: SMBJ26A - break down på 28.9V LDO kan klare op til 35 V, kræver low side sensing med INA180
+
+Crystal:
+ - TSX-3225 (https://www.digikey.com/product-detail/en/epson/TSX-3225-16.0000MF09Z-AC0/SER4069CT-ND/5413938)
+ - https://www.digikey.com/product-detail/en/abracon-llc/ABLS-16.000MHZ-B4-T/535-10226-1-ND/2184261
+ - https://www.digikey.com/product-detail/en/abracon-llc/ABLS-8.000MHZ-B4-T/535-10212-1-ND/2184247
+Ferrite Bead (power supply filtering):
+ - https://www.digikey.com/product-detail/en/taiyo-yuden/BK1608TS102-T/587-1895-1-ND/1465365
+ - https://www.digikey.com/product-detail/en/murata-electronics-north-america/BLM18PG221SZ1D/490-16588-1-ND/7595513
+Sense resistor:
+   - https://www.digikey.com/product-detail/en/yageo/RL2512FK-070R015L/311-.015TCT-ND/1037237
+   - https://www.digikey.com/product-detail/en/yageo/PE2512FKE7W0R01L/YAG2167CT-ND/5139615
+   - https://www.digikey.com/product-detail/en/bourns-inc/CFG0612-FX-R010ELF/CFG0612-FX-R010ELFCT-ND/9924214
+   - https://www.mouser.dk/ProductDetail/Susumu/KRL2012E-C-R008-F-T5?qs=sGAEpiMZZMtlleCFQhR%2FzXAGiOCRCr1I8yG570vH5BKgHsceK3LvmA%3D%3D    (OBS. 0805 footprint)
+   - https://www.digikey.com/product-detail/en/yageo/PE2512FKE070R008L/YAG2148CT-ND/5139596
+
+P-fet for reverse polarity:
+
+Priser ved 1000 stk.
+Bud 1:
+SIS413DN
+0,64W effekt ved 8A
+Lidt over 3x3 mm
+$0.24
+ 
+Bud 2:
+SiSH625DN
+7mOhm
+0,45W ved 8 A
+Lidt over 3x3 mm
+$0.26
+
+Bud 3:
+AONS21321
+16.5mOhm
+1W ved 8A
+$0.17
+Bedre køling pga. package
+
+Bud 4:
+AOSP21321
+17mOhm
+1.1W ved 8A
+$0.16
+
+
+USB Mini-B connector: 690-005-299-043   (https://www.digikey.com/product-detail/en/edac-inc/690-005-299-043/151-1206-1-ND/4312192)
+
+Aluminum capacitor: 470 uF Electrolytic Aluminum Capacitor med Panasonic footprint  - https://dk.farnell.com/panasonic/eeefk1e471p/cap-470-f-25v-radial-smd/dp/9695800?MER=bn_browse_1TP_MostPopular_4 eller https://dk.farnell.com/multicomp/mcvfz035m471xb6l/cap-470-f-35v-smd/dp/2630477
+ - https://www.digikey.com/product-detail/en/panasonic-electronic-components/EEU-FM1H471/P12400-ND/613761
+ - https://www.digikey.com/product-detail/en/united-chemi-con/EMZS350ARA471MHA0G/565-5123-1-ND/8637118
+ - https://www.digikey.com/product-detail/en/rubycon/35PK470MEFC10X12.5/1189-1743-ND/3563552
+
+Schottky diode
+ - NSR0530HT1G,  Vf = 620mV @ 500mA   (https://www.digikey.com/product-detail/en/on-semiconductor/NSR0530HT1G/NSR0530HT1GOSCT-ND/5761654)
+ - CDBA140-G,  Vf = 500mV @ 1A   (https://www.digikey.com/product-detail/en/comchip-technology/CDBA140-G/641-1015-1-ND/1121137)
+
+Capacitors (pricing at 100 pieces)
+ - 10 uF, 50V, ceramic, 1206, $0.11   (https://www.digikey.com/product-detail/en/samsung-electro-mechanics/CL31A106MBHNNNE/1276-6736-1-ND/5961595)
+ - 10 uF, 6.3V, ceramic, 0805, $0.042   (https://www.digikey.com/product-detail/en/samsung-electro-mechanics/CL21A106KQCLRNC/1276-2405-1-ND/3890491)
+ - 4.7 uF, 6.3V, ceramic, 0603, $0.025   (https://www.digikey.com/product-detail/en/samsung-electro-mechanics/CL10A475KQ8NNNC/1276-1045-1-ND/3889131)
+ - 1 uF, 50V, ceramic, 1206, $0.047   ()
+ - 1 uF, 50V, ceramic, 0805, $0.044   (https://www.digikey.com/product-detail/en/samsung-electro-mechanics/CL21B105KBFNNNG/1276-6470-1-ND/5958098)
+ - 1 uF, 10V, ceramic, 0603, $0.012   (https://www.digikey.com/product-detail/en/samsung-electro-mechanics/CL10A105MP8NNNC/1276-1866-1-ND/3889952)
+ - 100 nF, 50V, ceramic, 0603, $0.012   (https://www.digikey.com/product-detail/en/samsung-electro-mechanics/CL10B104KB8NNNC/1276-1000-1-ND/3889086)
+ - 10 nF, 6.3V, ceramic, 0603, $0.0098   (https://www.digikey.com/product-detail/en/walsin-technology-corporation/0603B103K500CT/1292-1386-1-ND/9355390)
+
+Inrush current limiter:
+ - https://www.digikey.com/product-detail/en/ametherm/SL12-1R010/570-1077-ND/1873480
+
+Resettable fuse (pricing at 100 pieces)
+ - 350 mA hold, 750 mA trip, 16V max, 1206, $0.104   (https://www.digikey.com/product-detail/en/bel-fuse-inc/0ZCJ0035FF2G/507-1800-1-ND/4156232)
+ - 500 mA hold, 1 A trip, 8V max, 1206, $0.104   (https://www.digikey.com/product-detail/en/bel-fuse-inc/0ZCJ0050FF2G/507-1802-1-ND/4156236)
+
+Screw terminal (pricing at 100 pieces)
+ - 2 pos, 5 mm pitch, 12-22 AWG, 15 A, $0.21   (https://www.digikey.com/product-detail/en/cui-inc/TB002-500-02BE/102-6145-ND/10064069)
+ - 3 pos, 5 mm pitch, 12-28 AWG, 15 A, $0.422   (https://www.digikey.com/product-detail/en/cui-inc/TB002-500-02BE/102-6145-ND/10064069)
+ - Other: https://www.rapidonline.com/Cables-Connectors/2-Way-16a-PCB-Terminal-Block-21-0112
+
+Tactile switch
+ - Make sure to buy one whose pin layout matches the PCB (common pins are across the long side / 6.5mm spaced)
+ - https://www.digikey.com/product-detail/en/te-connectivity-alcoswitch-switches/1825910-6/450-1650-ND/1632536
+
+RGB LED
+ - 3528, 3535 or 5050 SMD? Otherwise through hole?
+ - https://www.digikey.com/product-detail/en/cree-inc/CLX6F-FKC-CNP1ST1E1BB7D3D3/CLX6F-FKC-CNP1ST1E1BB7D3D3CT-ND/6362814

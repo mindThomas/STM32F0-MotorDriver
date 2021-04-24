@@ -1,8 +1,3 @@
-Debug/
-.settings/
-*.log
-*.launch
-
 # Prerequisites
 *.d
 
